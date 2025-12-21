@@ -49,7 +49,27 @@ app.use(
 // IMPORTANT: allow preflight requests
 app.options('*', cors());
 
-// JSON body parser with size limit
+// ========== RAZORPAY WEBHOOK (MUST be BEFORE express.json()) ==========
+// Razorpay webhook - NO auth (Razorpay calls this)
+// CRITICAL: This route needs raw body for signature verification,
+// so it MUST be defined BEFORE the global express.json() middleware
+app.post('/api/razorpay-webhook',
+  express.raw({ type: 'application/json' }),
+  (req, res, next) => {
+    // Preserve raw body as string for signature verification
+    req.rawBody = req.body.toString('utf8');
+    // Parse JSON for handler
+    try {
+      req.body = JSON.parse(req.rawBody);
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid JSON' });
+    }
+    next();
+  },
+  handleWebhook
+);
+
+// JSON body parser with size limit (AFTER webhook route)
 app.use(express.json({ limit: '1mb' }));
 
 // Apply default rate limiter to all routes
@@ -137,23 +157,8 @@ app.post('/api/verify-payment',
   verifyPayment
 );
 
-// Razorpay webhook - NO auth (Razorpay calls this)
-// FIX: Use raw body for signature verification, then parse JSON
-app.post('/api/razorpay-webhook',
-  express.raw({ type: 'application/json' }),
-  (req, res, next) => {
-    // Preserve raw body as string for signature verification
-    req.rawBody = req.body.toString('utf8');
-    // Parse JSON for handler
-    try {
-      req.body = JSON.parse(req.rawBody);
-    } catch (e) {
-      return res.status(400).json({ error: 'Invalid JSON' });
-    }
-    next();
-  },
-  handleWebhook
-);
+// NOTE: Razorpay webhook is defined above, BEFORE express.json() middleware
+// to ensure raw body is available for signature verification
 
 // Change plan (for downgrades) - requires authentication
 app.post('/api/change-plan',
