@@ -20,68 +20,34 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const isProduction = process.env.NODE_ENV === 'production';
 
-// CORS Configuration - Restrict to specific origins
+// CORS Configuration
 const allowedOrigins = [
-  'http://localhost:5173',
+  'https://xiron.netlify.app',   // production frontend
+  'http://localhost:5173',       // local dev (Vite)
   'http://localhost:3000',
   'http://127.0.0.1:5173',
-  // Add your production domain here:
-  // 'https://yourdomain.com'
 ];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // In production, block requests with no origin (prevents CSRF via iframes/curl)
-    // In development, allow for testing convenience
-    if (!origin) {
-      if (isProduction) {
-        return callback(new Error('Not allowed by CORS'));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow non-browser requests (like Razorpay webhooks, Postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Origin not allowed'));
       }
-      return callback(null, true);
-    }
-
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-// ========== SECURITY MIDDLEWARE ==========
-
-// Helmet - Sets various HTTP headers for security
-// Protects against XSS, clickjacking, content-type sniffing, etc.
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", ...allowedOrigins],
     },
-  },
-  crossOriginEmbedderPolicy: false, // Disable if you need to embed external resources
-}));
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
-// HTTPS enforcement in production
-if (isProduction) {
-  app.use((req, res, next) => {
-    // Check if request was forwarded from HTTPS (common with proxies/load balancers)
-    if (req.headers['x-forwarded-proto'] !== 'https') {
-      return res.redirect(301, `https://${req.headers.host}${req.url}`);
-    }
-    next();
-  });
-}
-
-// CORS
-app.use(cors(corsOptions));
+// IMPORTANT: allow preflight requests
+app.options('*', cors());
 
 // JSON body parser with size limit
 app.use(express.json({ limit: '1mb' }));
