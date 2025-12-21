@@ -318,10 +318,10 @@ async function handlePaymentCaptured(payload) {
 
         const targetUserId = lockedRecord.user_id;
 
-        // Get current user credits
+        // Get current user credits AND plan
         const { data: currentData, error: creditsError } = await supabase
             .from('user_credits')
-            .select('credits')
+            .select('credits, plan')
             .eq('user_id', targetUserId)
             .single();
 
@@ -332,7 +332,22 @@ async function handlePaymentCaptured(payload) {
         }
 
         const existingCredits = currentData?.credits || 0;
-        const newCredits = existingCredits + planConfig.credits;
+        const currentPlan = currentData?.plan || 'free';
+
+        // CREDIT ROLLOVER POLICY:
+        // 🔼 ROLLOVER ALLOWED: Upgrades (Starter→Pro) & Same-plan renewals (Starter→Starter, Pro→Pro)
+        // 🚫 NO ROLLOVER: Free→Paid (free credits don't rollover), Downgrades (handled in /api/change-plan)
+        let newCredits;
+        if (currentPlan === 'free') {
+            // Free → Paid: No rollover (free credits don't carry over)
+            newCredits = planConfig.credits;
+            console.log(`📊 Free → ${trustedPlanId}: Credits set to ${newCredits}`);
+        } else {
+            // Paid → Paid: ROLLOVER (upgrades + same-plan renewals)
+            // Example: Starter(40)→Pro = 40+200, Starter(40)→Starter = 40+100
+            newCredits = existingCredits + planConfig.credits;
+            console.log(`📊 ${currentPlan} → ${trustedPlanId}: Rollover ${existingCredits} + ${planConfig.credits} = ${newCredits}`);
+        }
 
         const planExpiresAt = new Date();
         planExpiresAt.setDate(planExpiresAt.getDate() + 30);
@@ -470,11 +485,14 @@ export async function changePlan(req, res) {
         let planExpiresAt = null;
 
         if (targetPlan === 'free') {
+            // Downgrade to Free: Reset to 50 credits, no rollover
             newCredits = 50;
             freeUpdates = 0;
         } else if (targetPlan === 'starter') {
+            // Downgrade to Starter: Get only Starter credits (no rollover)
+            // Only UPGRADES carry over existing credits
             const starterConfig = PLAN_CONFIG.starter;
-            newCredits = currentCredits + starterConfig.credits;
+            newCredits = starterConfig.credits; // Just 100, not existing + 100
             freeUpdates = starterConfig.freeUpdates;
             const expiryDate = new Date();
             expiryDate.setDate(expiryDate.getDate() + 30);
