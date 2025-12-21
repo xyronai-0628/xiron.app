@@ -9,6 +9,7 @@ import { generateUserflow } from './controllers/userflowController.js';
 import { generateBundle } from './controllers/bundleController.js';
 import { createOrder, verifyPayment, handleWebhook, changePlan } from './controllers/paymentController.js';
 import { requestPasswordReset, getPasswordResetStatus } from './controllers/authController.js';
+import { requireAdmin, getRefundQueue, getGenerationDetails, processRefund, denyRefund, getUserTransactions } from './controllers/adminController.js';
 import { authMiddleware } from './middleware/auth.js';
 import { validateAndSanitize } from './middleware/sanitize.js';
 import { generateRateLimiter, defaultRateLimiter } from './middleware/rateLimit.js';
@@ -179,6 +180,49 @@ app.post('/api/request-password-reset',
 app.post('/api/password-reset-status',
   defaultRateLimiter,
   getPasswordResetStatus
+);
+
+// ========== ADMIN ROUTES (Refund System) ==========
+// All admin routes require authentication + admin role check
+
+// Get list of refund-eligible generations
+app.get('/api/admin/refund-queue',
+  defaultRateLimiter,
+  authMiddleware,
+  requireAdmin,
+  getRefundQueue
+);
+
+// Get generation details for refund review
+app.get('/api/admin/generation/:generationId',
+  defaultRateLimiter,
+  authMiddleware,
+  requireAdmin,
+  getGenerationDetails
+);
+
+// Process an approved refund
+app.post('/api/admin/process-refund',
+  defaultRateLimiter,
+  authMiddleware,
+  requireAdmin,
+  processRefund
+);
+
+// Deny a refund request
+app.post('/api/admin/deny-refund',
+  defaultRateLimiter,
+  authMiddleware,
+  requireAdmin,
+  denyRefund
+);
+
+// Get user transaction history (admin view)
+app.get('/api/admin/user-transactions/:userId',
+  defaultRateLimiter,
+  authMiddleware,
+  requireAdmin,
+  getUserTransactions
 );
 
 // Error handling middleware

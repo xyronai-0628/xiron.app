@@ -19,37 +19,69 @@ export const DAILY_LIMITS = {
     pro: 50       // 50 generations per day
 };
 
-// In-memory cache for daily generation counts
-// Key: `userId:YYYY-MM-DD`, Value: count
-const dailyGenerationCounts = new Map();
-
-// Clean up old entries every hour
-setInterval(() => {
-    const today = new Date().toISOString().split('T')[0];
-    for (const [key, _] of dailyGenerationCounts.entries()) {
-        if (!key.endsWith(today)) {
-            dailyGenerationCounts.delete(key);
-        }
-    }
-}, 3600000);
+/**
+ * PRODUCTION-SAFE: Database-backed daily generation tracking
+ * Uses Supabase RPC for atomic increment with race-condition protection
+ * 
+ * Why this is safe:
+ * - Survives server restarts
+ * - Works across multiple server instances
+ * - Atomic increment prevents race conditions
+ * - Works on serverless platforms (Render, Railway, Vercel)
+ */
 
 /**
- * Get today's generation count for a user
+ * Get today's generation count from database
+ * @param {string} userId - User ID
+ * @returns {Promise<number>} - Current daily count
  */
-function getDailyCount(userId) {
-    const today = new Date().toISOString().split('T')[0];
-    const key = `${userId}:${today}`;
-    return dailyGenerationCounts.get(key) || 0;
+async function getDailyCountDB(userId) {
+    const { data, error } = await supabase.rpc('get_daily_generation_count', {
+        p_user_id: userId
+    });
+
+    if (error) {
+        console.error('Error fetching daily count:', error.message);
+        return 0;
+    }
+
+    return data || 0;
 }
 
 /**
- * Increment today's generation count for a user
+ * Atomically increment daily generation count and check limit
+ * Uses Supabase RPC function for race-safe enforcement
+ * 
+ * @param {string} userId - User ID
+ * @param {number} dailyLimit - Max allowed generations per day
+ * @returns {Promise<{allowed: boolean, count: number, limit: number, message?: string}>}
  */
-export function incrementDailyCount(userId) {
-    const today = new Date().toISOString().split('T')[0];
-    const key = `${userId}:${today}`;
-    const current = dailyGenerationCounts.get(key) || 0;
-    dailyGenerationCounts.set(key, current + 1);
+async function incrementAndCheckDailyLimit(userId, dailyLimit) {
+    const { data, error } = await supabase.rpc('increment_daily_generation', {
+        p_user_id: userId,
+        p_daily_limit: dailyLimit
+    });
+
+    if (error) {
+        console.error('Error in daily limit RPC:', error.message);
+        // On error, allow the request but log it (fail-open for availability)
+        // You could change to fail-closed for stricter security
+        return { allowed: true, count: 0, limit: dailyLimit, error: error.message };
+    }
+
+    return data;
+}
+
+/**
+ * Increment daily count after successful generation (legacy function name for compatibility)
+ * Now uses database instead of in-memory storage
+ * @param {string} userId - User ID
+ */
+export async function incrementDailyCount(userId) {
+    // The increment already happened in enforceDailyLimit via RPC
+    // This function is kept for API compatibility but is now a no-op
+    // The actual increment happens atomically in enforceDailyLimit
+    console.log(`📊 Daily generation tracked in DB for user: ${userId}`);
 }
 
 /**
@@ -161,35 +193,51 @@ export function requireCredits(creditCost = CREDIT_COSTS.SINGLE_REPORT) {
 }
 
 /**
- * Middleware to enforce daily generation limits per plan
- * Prevents AI cost exploitation even with valid credits
+ * Middleware to enforce daily generation limits per plan (PRODUCTION-SAFE)
+ * Uses Supabase RPC for atomic increment + check (prevents race conditions)
  * Must be used AFTER validatePlanAndCredits middleware
+ * 
+ * EXECUTION ORDER:
+ * 1. Check + Increment atomically via RPC
+ * 2. If limit exceeded, RPC rolls back and returns error
+ * 3. If allowed, proceed to next middleware
  */
-export function enforceDailyLimit(req, res, next) {
+export async function enforceDailyLimit(req, res, next) {
     const userId = req.user?.id;
     const plan = req.userPlan || 'free';
     const dailyLimit = DAILY_LIMITS[plan] || DAILY_LIMITS.free;
-    const currentCount = getDailyCount(userId);
 
-    if (currentCount >= dailyLimit) {
-        const resetTime = new Date();
-        resetTime.setUTCHours(24, 0, 0, 0); // Midnight UTC
-        const hoursUntilReset = Math.ceil((resetTime - new Date()) / (1000 * 60 * 60));
+    try {
+        // Atomic check + increment via database RPC
+        const result = await incrementAndCheckDailyLimit(userId, dailyLimit);
 
-        return res.status(429).json({
-            error: 'Daily Limit Exceeded',
-            message: `You have reached your daily limit of ${dailyLimit} generations for the ${plan} plan. Your limit resets in ${hoursUntilReset} hours.`,
-            dailyLimit: dailyLimit,
-            used: currentCount,
-            plan: plan,
-            hoursUntilReset: hoursUntilReset
-        });
+        if (!result.allowed) {
+            const resetTime = new Date();
+            resetTime.setUTCHours(24, 0, 0, 0); // Midnight UTC
+            const hoursUntilReset = Math.ceil((resetTime - new Date()) / (1000 * 60 * 60));
+
+            return res.status(429).json({
+                error: 'Daily Limit Exceeded',
+                message: `You have reached your daily limit of ${dailyLimit} generations for the ${plan} plan. Your limit resets in ${hoursUntilReset} hours.`,
+                dailyLimit: dailyLimit,
+                used: result.count,
+                plan: plan,
+                hoursUntilReset: hoursUntilReset
+            });
+        }
+
+        // Store current count for reference
+        req.dailyGenerationsUsed = result.count;
+        req.dailyGenerationsRemaining = dailyLimit - result.count;
+
+        console.log(`📊 Daily limit checked: User ${userId} - ${result.count}/${dailyLimit} (${plan})`);
+        next();
+    } catch (error) {
+        console.error('Daily limit enforcement error:', error.message);
+        // Fail-open: Allow request on error to maintain availability
+        // Change to fail-closed for stricter security
+        next();
     }
-
-    // Store current count for reference
-    req.dailyGenerationsUsed = currentCount;
-    req.dailyGenerationsRemaining = dailyLimit - currentCount - 1;
-    next();
 }
 
 /**
@@ -249,24 +297,16 @@ export async function deductCreditsServer(userId, amount, currentCredits) {
 }
 
 /**
- * Refund credits if generation fails
+ * @deprecated This function is deprecated as of the enterprise credit system.
+ * Refunds are now admin-only via the admin_process_refund RPC.
+ * 
+ * DO NOT use this function for automatic refunds.
+ * Keep for backwards compatibility only.
  */
 export async function refundCreditsServer(userId, amount) {
-    const { data: currentData } = await supabase
-        .from('user_credits')
-        .select('credits')
-        .eq('user_id', userId)
-        .single();
+    console.warn('⚠️ DEPRECATED: refundCreditsServer() called. Automatic refunds are no longer allowed.');
+    console.warn('   Use admin refund flow instead: POST /api/admin/process-refund');
 
-    if (!currentData) return { success: false };
-
-    const { error } = await supabase
-        .from('user_credits')
-        .update({
-            credits: currentData.credits + amount,
-            updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
-
-    return { success: !error };
+    // Return failure - automatic refunds are disabled
+    return { success: false, error: 'Automatic refunds are disabled. Use admin refund flow.' };
 }
