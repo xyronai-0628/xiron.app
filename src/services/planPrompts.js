@@ -18,7 +18,7 @@ export const PLAN_CONFIG = {
       name: 'Pro',
       maxInputTokens: 5000,
       maxOutputTokens: 9000,
-      model: 'gpt-5-mini'
+      model: 'gpt-4.1-mini'
    }
 };
 
