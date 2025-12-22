@@ -5,20 +5,20 @@ export const PLAN_CONFIG = {
    free: {
       name: 'Free',
       maxInputTokens: 1000,
-      maxOutputTokens: 4000,
+      maxOutputTokens: 2000,
       model: 'gpt-4o-mini'
    },
    starter: {
       name: 'Starter',
       maxInputTokens: 2000,
       maxOutputTokens: 4000,
-      model: 'gpt-4o-mini'
+      model: 'gpt-4.1-mini'
    },
    pro: {
       name: 'Pro',
-      maxInputTokens: 8000,
-      maxOutputTokens: 16000,
-      model: 'gpt-4o-mini'
+      maxInputTokens: 5000,
+      maxOutputTokens: 9000,
+      model: 'gpt-5-mini'
    }
 };
 
@@ -36,7 +36,7 @@ Core features (3–5 points)
 Basic folder structure
 Key files with short purpose
 Use clear headings, simple language, and actionable specs.
-Keep it concise (under 500 tokens).
+Keep it concise (under 1000  output tokens).
 `,
 
    starter: `
@@ -59,7 +59,7 @@ Phase 1–3, dependencies
 AI Tool Guidance
 Prompts per phase, file generation order, testing checks
 Format in clean markdown with code blocks and concrete implementation details.
-Target: 1200–1500 tokens output.
+Target: 2200 –2500 tokens output.
 `,
    pro: `
 You are a Senior System Architect producing a production-ready MVP architecture for AI coding tools (Cursor, Windsurf, Bolt, v0, Replit Agent, GitHub Copilot Workspace).
@@ -102,7 +102,7 @@ Output Rules:
 Structured markdown with clear hierarchy
 Code blocks + config snippets where useful
 Concrete, actionable instructions
-Target output: 1800–2000 tokens
+Target output: 3000-3500 tokens
 Tone: precise, technical, senior-engineer level
 `
 };
@@ -121,7 +121,7 @@ Problem & Solution (core problem and solution)
 Key Features (3-5 features)
 Success Metrics (2-3 KPIs)
 Out of Scope (what's NOT in MVP)
-Output clean markdown only. No commentary. Under 500 tokens.
+Output clean markdown only. No commentary. Under 1000 output tokens.
 `,
 
    starter: `
@@ -147,7 +147,7 @@ Assumptions & Dependencies
 Key assumptions, risks, external dependencies
 Release Criteria
 MVP scope, launch requirements, Phase 2 enhancements
-Format in structured markdown. Target: 1200-1500 tokens.
+Format in structured markdown. Target: 2200-2500 tokens.
 `,
 
 
@@ -404,8 +404,7 @@ Include:
     - Competitive feature comparison matrix
     - User research insights summary
 
-Output format: Comprehensive, professional PRD in structured markdown with hierarchical sections, tables, numbered lists, and detailed specifications that AI coding tools can directly translate into implementation plans. Generate a COMPLETE and DETAILED document covering ALL 19 sections above. Do not truncate or abbreviate - provide full coverage of every section.
-
+Output format: Comprehensive, professional PRD in structured markdown with hierarchical sections, tables, numbered lists, and detailed specifications that AI coding tools can directly translate into implementation plans. Generate a COMPLETE and DETAILED document covering ALL 19 sections above. Do not truncate or abbreviate - provide full coverage of every section.note must be under 2500 output tokens.
 Tone: Strategic yet practical, user-centric, data-informed. Write as a senior PM briefing an engineering team through AI tools.
 `
 };
@@ -423,7 +422,7 @@ Tables/Collections (3-5 main entities)
 Fields with data types per table
 Primary keys
 Basic relationships (foreign keys)
-Output in clear table structure with SQL/NoSQL syntax. Under 500 tokens.
+Output in clear table structure with SQL/NoSQL syntax. Under 1000 output tokens.
 `,
 
    starter: `
@@ -449,7 +448,7 @@ Seeding Strategy
 Initial data, seed priorities
 AI Tool Notes
 ORM recommendation (Prisma/TypeORM/Mongoose), schema structure, env vars, migration commands
-Format in markdown with SQL/NoSQL code blocks. Target: 1200-1500 tokens.
+Format in markdown with SQL/NoSQL code blocks. Target: 2200-2500 output tokens.
 `,
 
    pro: `
@@ -849,7 +848,7 @@ Include:
     - Best practices articles
     - Performance tuning guides
 
-Output format: Comprehensive, production-ready database specification in structured markdown with complete SQL/NoSQL code blocks, detailed table definitions, performance optimization strategies, and implementation instructions optimized for AI coding tool consumption. 1800-2000 tokens.
+Output format: Comprehensive, production-ready database specification in structured markdown with complete SQL/NoSQL code blocks, detailed table definitions, performance optimization strategies, and implementation instructions optimized for AI coding tool consumption. 3200-3500 output tokens.
 
 Tone: Technical, precise, security-conscious. Write as a senior database architect providing a complete blueprint to engineering teams via AI tools.
 `
@@ -869,7 +868,7 @@ Entry point
 Step-by-step journey (5-8 steps)
 Success outcome
 One alternative path
-Output numbered steps with clear actions and simple decision points. Under 500 tokens.
+Output numbered steps with clear actions and simple decision points. Under 1000 output tokens.
 `,
 
    starter: `
@@ -895,7 +894,7 @@ User Flows (6-10 total)
 Onboarding, core features, account management, error recovery
 AI Tool Notes
 Component mapping, state management, navigation logic, form handling, API integration
-Format in structured markdown with step-by-step flows. Target: 1200-1500 tokens.
+Format in structured markdown with step-by-step flows. Target: 2200-2500 output tokens.
 `,
 
    pro: `
@@ -1455,7 +1454,7 @@ Include:
     - Change log
     - Review/approval history
 
-Output format: Comprehensive, production-ready user flow specification in structured markdown with detailed step-by-step flows, complete decision trees, UI specifications, analytics tracking, and implementation instructions optimized for AI coding tool consumption. 1800-2000 tokens.
+Output format: Comprehensive, production-ready user flow specification in structured markdown with detailed step-by-step flows, complete decision trees, UI specifications, analytics tracking, and implementation instructions optimized for AI coding tool consumption. 3200-3500 output tokens.
 
 Tone: User-centric, detail-oriented, implementation-focused. Write as a senior UX architect providing complete blueprints to engineering teams via AI tools.
 `
