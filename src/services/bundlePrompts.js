@@ -314,11 +314,11 @@ Output in detailed markdown with clear step numbering. Target: 1800-2000 tokens.
 export const BUNDLE_CONFIG = {
    starter: {
       maxOutputTokens: 9000,
-      model: 'gpt-4.1-mini'
+      model: 'gpt-4o-mini'
    },
    pro: {
       maxOutputTokens: 12000,
-      model: 'gpt-5-mini'
+      model: 'gpt-4o-mini'
    }
 };
 

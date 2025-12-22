@@ -12,13 +12,13 @@ export const PLAN_CONFIG = {
       name: 'Starter',
       maxInputTokens: 2000,
       maxOutputTokens: 4000,
-      model: 'gpt-4.1-mini'
+      model: 'gpt-4o-mini'
    },
    pro: {
       name: 'Pro',
       maxInputTokens: 5000,
       maxOutputTokens: 9000,
-      model: 'gpt-4.1-mini'
+      model: 'gpt-4o-mini'
    }
 };
 
