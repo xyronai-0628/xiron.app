@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 /**
  * GENERATION LOGGER SERVICE (HARDENED)
@@ -123,7 +123,7 @@ export function isRefundableError(errorCode) {
  */
 export async function deductCreditsWithLog(userId, creditAmount, generationType, reason, requestId = null) {
     // Generate new ID or use provided requestId for idempotency
-    const generationId = requestId || uuidv4();
+    const generationId = requestId || randomUUID();
 
     // IDEMPOTENCY CHECK: If requestId provided, check if already processed
     // SECURITY: Must check BOTH generation_id AND user_id to prevent cross-user replay attacks
