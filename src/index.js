@@ -24,6 +24,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 // CORS Configuration
 const allowedOrigins = [
   'https://xiron.app',           // production frontend
+  'https://www.xiron.app',       // production with www
+  'https://xiron.netlify.app',   // Netlify domain (backup)
   'http://localhost:5173',       // local dev (Vite)
   'http://localhost:3000',
   'http://127.0.0.1:5173',
