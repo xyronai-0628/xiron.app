@@ -6,7 +6,7 @@ const PLAN_CONFIG = {
     starter: {
         credits: 100,
         freeUpdates: 1,
-        priceInPaise: 1000, // ₹10 (TEMP: Original ₹149)
+        priceInPaise: 14900, // ₹149
         name: 'Starter Plan'
     },
     pro: {
