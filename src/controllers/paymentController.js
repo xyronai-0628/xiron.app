@@ -4,15 +4,15 @@ import { razorpay, verifyPaymentSignature, verifyWebhookSignature } from '../con
 // Plan configurations with prices in paise (100 paise = 1 INR)
 const PLAN_CONFIG = {
     starter: {
-        credits: 100,
+        credits: 120,
         freeUpdates: 1,
-        priceInPaise: 14900, // ₹149
+        priceInPaise: 9900, // ₹99 (Launch Offer)
         name: 'Starter Plan'
     },
     pro: {
-        credits: 200,
+        credits: 240,
         freeUpdates: 3,
-        priceInPaise: 29900, // ₹299
+        priceInPaise: 19900, // ₹199 (Launch Offer)
         name: 'Pro Plan'
     }
 };

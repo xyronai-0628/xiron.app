@@ -1,13 +1,43 @@
 import { supabase } from '../config/supabase.js';
 
 /**
- * Credit costs for different operations
+ * Credit costs for different operations (plan-specific)
  */
 export const CREDIT_COSTS = {
-    SINGLE_REPORT: 40,
-    BUNDLE: 160,  // 4 reports
+    // Default/Free plan costs (free doesn't have bundle access)
+    SINGLE_REPORT: 20,
+    BUNDLE: 70,
     UPDATE: 10
 };
+
+/**
+ * Plan-specific credit costs
+ */
+export const PLAN_CREDIT_COSTS = {
+    free: {
+        SINGLE_REPORT: 20,
+        BUNDLE: 70,  // Not accessible for free, but defined for consistency
+        UPDATE: 10
+    },
+    starter: {
+        SINGLE_REPORT: 20,
+        BUNDLE: 70,
+        UPDATE: 10
+    },
+    pro: {
+        SINGLE_REPORT: 30,
+        BUNDLE: 90,
+        UPDATE: 10
+    }
+};
+
+/**
+ * Helper to get credit cost based on user's plan
+ */
+export function getCreditCost(plan, operation) {
+    const planCosts = PLAN_CREDIT_COSTS[plan] || PLAN_CREDIT_COSTS.free;
+    return planCosts[operation] || CREDIT_COSTS[operation];
+}
 
 /**
  * Daily generation limits per plan (prevents AI cost exploitation)
@@ -174,9 +204,13 @@ export async function validatePlanAndCredits(req, res, next) {
 /**
  * Middleware to check if user has sufficient credits for single report
  * Must be used AFTER validatePlanAndCredits middleware
+ * Now uses plan-specific credit costs
  */
-export function requireCredits(creditCost = CREDIT_COSTS.SINGLE_REPORT) {
+export function requireCredits() {
     return (req, res, next) => {
+        // Get plan-specific credit cost
+        const creditCost = getCreditCost(req.userPlan, 'SINGLE_REPORT');
+
         if (req.userCredits < creditCost) {
             return res.status(402).json({
                 error: 'Insufficient Credits',
@@ -243,6 +277,7 @@ export async function enforceDailyLimit(req, res, next) {
 /**
  * Middleware to check if user's plan allows bundle generation
  * Must be used AFTER validatePlanAndCredits middleware
+ * Now uses plan-specific bundle costs
  */
 export function requireBundleAccess(req, res, next) {
     const allowedPlans = ['starter', 'pro'];
@@ -255,17 +290,19 @@ export function requireBundleAccess(req, res, next) {
         });
     }
 
-    // Check credits for bundle (4x single report cost)
-    if (req.userCredits < CREDIT_COSTS.BUNDLE) {
+    // Get plan-specific bundle cost
+    const bundleCost = getCreditCost(req.userPlan, 'BUNDLE');
+
+    if (req.userCredits < bundleCost) {
         return res.status(402).json({
             error: 'Insufficient Credits',
-            message: `You need ${CREDIT_COSTS.BUNDLE} credits for Developer Bundle. You have ${req.userCredits} credits.`,
-            required: CREDIT_COSTS.BUNDLE,
+            message: `You need ${bundleCost} credits for Developer Bundle. You have ${req.userCredits} credits.`,
+            required: bundleCost,
             available: req.userCredits
         });
     }
 
-    req.creditCost = CREDIT_COSTS.BUNDLE;
+    req.creditCost = bundleCost;
     next();
 }
 
