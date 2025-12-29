@@ -51,8 +51,8 @@ Required Schema:
 Folder Structure:
 [Code block with ASCII tree]
 Key File Definitions:
-- `[file_path]`: [Specific responsibility + key dependencies]
-- Include one  README.md or `.cursorrules` file definition containing prompt instructions for the AI agent.
+- \`[file_path]\`: [Specific responsibility + key dependencies]
+- Include one  README.md or \`.cursorrules\` file definition containing prompt instructions for the AI agent.
 **Error Handling:**
 If the user prompt is vague, make industry-standard assumptions (e.g., Next.js, Tailwind, Supabase) and proceed. Do not ask for clarification.
 `,
